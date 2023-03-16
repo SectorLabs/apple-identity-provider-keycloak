@@ -61,7 +61,7 @@ public class AppleIdentityProviderEndpoint {
             return errorIdentityProviderLogin(Messages.IDENTITY_PROVIDER_MISSING_STATE_ERROR);
         }
 
-        IdentityBrokerState idpState = IdentityBrokerState.encoded(state, realm);
+        IdentityBrokerState idpState = IdentityBrokerState.encoded(state);
         String clientId = idpState.getClientId();
         String tabId = idpState.getTabId();
         if (clientId == null || tabId == null) {

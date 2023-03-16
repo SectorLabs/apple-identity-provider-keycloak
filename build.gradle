@@ -11,12 +11,12 @@ repositories {
 }
 
 dependencies {
-    compileOnly 'org.keycloak:keycloak-core:20.0.3'
-    compileOnly 'org.keycloak:keycloak-server-spi:20.0.3'
-    compileOnly 'org.keycloak:keycloak-server-spi-private:20.0.3'
-    compileOnly 'org.keycloak:keycloak-services:20.0.3'
+    compileOnly 'org.keycloak:keycloak-core:15.0.2'
+    compileOnly 'org.keycloak:keycloak-server-spi:15.0.2'
+    compileOnly 'org.keycloak:keycloak-server-spi-private:15.0.2'
+    compileOnly 'org.keycloak:keycloak-services:15.0.2'
 
-    testImplementation 'org.keycloak:keycloak-services:20.0.3'
+    testImplementation 'org.keycloak:keycloak-services:15.0.2'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
 }
 
