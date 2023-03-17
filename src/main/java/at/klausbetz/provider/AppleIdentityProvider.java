@@ -239,12 +239,16 @@ public class AppleIdentityProvider extends OIDCIdentityProvider implements Socia
         appleUser.setProfile(profile);
         if (nameNode != null) {
             JsonNode firstNameNode = nameNode.get("firstName");
-            if (firstNameNode != null) {
+            if (firstNameNode != null && firstNameNode.isTextual() && !firstNameNode.asText().isBlank()) {
                 appleUser.setFirstName(firstNameNode.asText());
             }
             JsonNode lastNameNode = nameNode.get("lastName");
-            if (lastNameNode != null) {
-                appleUser.setLastName(lastNameNode.asText());
+            if (lastNameNode != null && lastNameNode.isTextual() && !lastNameNode.asText().isBlank()) {
+                if (appleUser.getFirstName() == null) {
+                    appleUser.setFirstName(lastNameNode.asText());
+                } else {
+                    appleUser.setFirstName(appleUser.getFirstName() + " " + lastNameNode.asText());
+                }
             }
         }
 
