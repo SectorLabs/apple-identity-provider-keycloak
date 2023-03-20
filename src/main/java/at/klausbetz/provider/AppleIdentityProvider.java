@@ -133,6 +133,7 @@ public class AppleIdentityProvider extends OIDCIdentityProvider implements Socia
 
         if (userData != null) {
             AppleUserRepresentation appleUser = parseUser(userData);
+            user.setEmail(appleUser.getEmail());
             user.setFirstName(appleUser.getFirstName());
             user.setLastName(appleUser.getLastName());
             AbstractJsonUserAttributeMapper.storeUserProfileForMapper(user, appleUser.getProfile(), getConfig().getAlias());
@@ -220,6 +221,9 @@ public class AppleIdentityProvider extends OIDCIdentityProvider implements Socia
     private BrokeredIdentityContext handleUserJson(BrokeredIdentityContext context, String userJson) {
         try {
             AppleUserRepresentation appleUser = parseUser(userJson);
+            if (appleUser.getEmail() != null && (context.getEmail() == null || context.getEmail().isBlank())) {
+                context.setEmail(appleUser.getEmail());
+            }
             if (appleUser.getFirstName() != null && (context.getFirstName() == null || context.getFirstName().isBlank())) {
                 context.setFirstName(appleUser.getFirstName());
             }
@@ -235,8 +239,14 @@ public class AppleIdentityProvider extends OIDCIdentityProvider implements Socia
     private AppleUserRepresentation parseUser(String userJson) throws JsonProcessingException {
         JsonNode profile = mapper.readTree(userJson);
         JsonNode nameNode = profile.get("name");
+        JsonNode emailNode = profile.get("email");
         AppleUserRepresentation appleUser = new AppleUserRepresentation();
         appleUser.setProfile(profile);
+
+        if (emailNode != null && emailNode.isTextual() && !emailNode.asText().isBlank()) {
+            appleUser.setEmail(emailNode.asText());
+        }
+
         if (nameNode != null) {
             JsonNode firstNameNode = nameNode.get("firstName");
             if (firstNameNode != null && firstNameNode.isTextual() && !firstNameNode.asText().isBlank()) {
