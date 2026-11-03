@@ -38,6 +38,9 @@ import java.io.IOException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 public class AppleIdentityProvider extends OIDCIdentityProvider implements SocialIdentityProvider<OIDCIdentityProviderConfig> {
 
@@ -49,6 +52,10 @@ public class AppleIdentityProvider extends OIDCIdentityProvider implements Socia
     private static final String JWKS_URL = "https://appleid.apple.com/auth/keys";
     private static final String ISSUER = "https://appleid.apple.com";
     static final String APPLE_AUTHZ_CODE = "apple-authz-code";
+
+    public static final String ADDITIONAL_AUDIENCES_CONFIG = "additionalAudiences";
+    // Unless true, ID tokens issued to clients that are not allowed are only logged, not rejected.
+    public static final String ENFORCE_ID_TOKEN_AUDIENCE_ENV_VAR = "ENFORCE_APPLE_ID_TOKEN_AUDIENCE";
 
     public AppleIdentityProvider(KeycloakSession session, AppleIdentityProviderConfig config) {
         super(session, config);
@@ -123,6 +130,8 @@ public class AppleIdentityProvider extends OIDCIdentityProvider implements Socia
             throw new ErrorResponseException(OAuthErrorException.INVALID_TOKEN, "invalid token", Response.Status.BAD_REQUEST);
         }
 
+        verifyIdTokenAudience(event, parsedToken);
+
         try {
             BrokeredIdentityContext context = extractIdentity(null, null, parsedToken);
             if (context == null) {
@@ -142,6 +151,41 @@ public class AppleIdentityProvider extends OIDCIdentityProvider implements Socia
             event.error(Errors.INVALID_TOKEN);
             throw new ErrorResponseException(OAuthErrorException.INVALID_TOKEN, "invalid token", Response.Status.BAD_REQUEST);
         }
+    }
+
+    // validateToken ignores the audience because native apps get ID tokens for their bundle ID, not the configured client ID.
+    private void verifyIdTokenAudience(EventBuilder event, JsonWebToken token) {
+        Set<String> allowed = getAllowedAudiences();
+        String[] audience = token.getAudience();
+        if (audience != null && Arrays.stream(audience).anyMatch(allowed::contains)) {
+            return;
+        }
+
+        String audienceList = audience == null ? null : String.join(",", audience);
+        if (!isIdTokenAudienceEnforced()) {
+            logger.warnf("Allowing an Apple ID token issued to a client that is not allowed (aud=%s)", audienceList);
+            return;
+        }
+        event.detail(Details.REASON, "token audience mismatch");
+        event.detail("token_audience", audienceList);
+        event.error(Errors.INVALID_TOKEN);
+        throw new ErrorResponseException(OAuthErrorException.INVALID_TOKEN, "invalid token", Response.Status.BAD_REQUEST);
+    }
+
+    protected boolean isIdTokenAudienceEnforced() {
+        return Boolean.parseBoolean(System.getenv(ENFORCE_ID_TOKEN_AUDIENCE_ENV_VAR));
+    }
+
+    private Set<String> getAllowedAudiences() {
+        Set<String> allowed = new HashSet<>();
+        allowed.add(getConfig().getClientId());
+
+        String additionalConfig = getConfig().getConfig().get(ADDITIONAL_AUDIENCES_CONFIG);
+        if (additionalConfig != null && !additionalConfig.isBlank()) {
+            allowed.addAll(Arrays.asList(additionalConfig.split("##")));
+        }
+
+        return allowed;
     }
 
     public void prepareClientSecret(String clientId) {
