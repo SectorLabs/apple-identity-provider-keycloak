@@ -23,6 +23,8 @@ dependencies {
 
     testImplementation "org.keycloak:keycloak-services:$keycloakVersion"
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
+    testImplementation 'org.mockito:mockito-core:5.11.0'
+    testRuntimeOnly 'org.jboss.resteasy:resteasy-core:6.2.7.Final'
 }
 
 test {
